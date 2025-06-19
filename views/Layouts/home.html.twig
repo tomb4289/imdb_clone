@@ -1,0 +1,33 @@
+{# imdb_clone/views/Layouts/home.html.twig #}
+{% extends 'Layouts/base.html.twig' %}
+
+{% block title %}Homepage - {{ app_name|default('IMDb Clone') }}{% endblock %}
+
+{% block content %}
+    <h2>Welcome to the {{ app_name|default('IMDb Clone') }}!</h2>
+    <p>This is your new MVC homepage. The routing and Twig setup are working!</p>
+
+    <h3>Recent Movies</h3>
+    {% if recent_movies is not empty %}
+        <ul>
+        {% for movie in recent_movies %}
+            <li>
+                <a href="{{ base_url }}/movies/show?id={{ movie.id }}">
+                    <strong>{{ movie.title|e }}</strong>
+                </a>
+                ({{ movie.release_date|e }})
+                <br>
+                {% if movie.description is not empty %}
+                    <small>
+                        {{ movie.description|slice(0, 150)|e }}
+                        {% if movie.description|length > 150 %}...{% endif %}
+                    </small>
+                {% endif %}
+                <a href="{{ base_url }}/movies/show?id={{ movie.id }}">Read more</a>
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No movies found in the database. Add some to see them here!</p>
+    {% endif %}
+{% endblock %}

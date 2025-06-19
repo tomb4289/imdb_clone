@@ -1,0 +1,13 @@
+{# imdb_clone/views/error/500.html.twig #}
+{% extends 'Layouts/base.html.twig' %} {# Extend your base layout for consistency #}
+
+{% block title %}Server Error - 500{% endblock %}
+
+{% block content %}
+    <div style="text-align: center; padding: 50px;">
+        <h1>500 - Internal Server Error</h1>
+        <p>Oops! Something went wrong on our end.</p>
+        <p>We're working to fix it. Please try again later.</p>
+        <a href="{{ base_url }}/">Go to Homepage</a>
+    </div>
+{% endblock %}

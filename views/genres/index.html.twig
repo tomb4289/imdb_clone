@@ -1,0 +1,27 @@
+{# imdb_clone/views/genres/index.html.twig #}
+{% extends 'Layouts/base.html.twig' %}
+
+{% block title %}All Genres{% endblock %}
+
+{% block content %}
+    <h1>All Genres</h1>
+
+    <p><a href="{{ base_url }}/genres/create">Add New Genre</a></p>
+
+    {% if genres is empty %}
+        <p>No genres found. Make sure your 'genres' table is populated!</p>
+    {% else %}
+        <div class="genres-list">
+            <ul>
+            {% for genre in genres %}
+                <li>
+                    {# Link to the genre's show page using its ID #}
+                    <a href="{{ base_url }}/genres/show?id={{ genre.id }}">
+                        {{ genre.name }}
+                    </a>
+                </li>
+            {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+{% endblock %}

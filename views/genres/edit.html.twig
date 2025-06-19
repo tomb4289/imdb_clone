@@ -1,0 +1,23 @@
+{# imdb_clone/views/genres/edit.html.twig #}
+{% extends 'Layouts/base.html.twig' %}
+
+{% block title %}Edit Genre: {{ genre.name }}{% endblock %}
+
+{% block content %}
+    <h1>Edit Genre: {{ genre.name }}</h1>
+
+    <form action="{{ base_url }}/genres/update" method="POST">
+        <input type="hidden" name="id" value="{{ genre.id }}">
+
+        <div>
+            <label for="name">Genre Name:</label>
+            <input type="text" id="name" name="name" value="{{ genre.name }}" required>
+        </div>
+        <div>
+            <button type="submit">Update Genre</button>
+        </div>
+    </form>
+
+    <p><a href="{{ base_url }}/genres/show?id={{ genre.id }}">Back to Genre Details</a></p>
+    <p><a href="{{ base_url }}/genres">Back to Genres List</a></p>
+{% endblock %}

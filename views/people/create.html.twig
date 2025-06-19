@@ -1,0 +1,24 @@
+{# imdb_clone/views/people/create.html.twig #}
+{% extends 'Layouts/base.html.twig' %}
+
+{% block title %}Add New Person{% endblock %}
+
+{% block content %}
+    <h1>Add New Person</h1>
+
+    <form action="{{ base_url }}/people/store" method="POST">
+        <div>
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+        <div>
+            <label for="birth_year">Birth Year (Optional):</label>
+            <input type="number" id="birth_year" name="birth_year" min="1800" max="{{ "now"|date("Y") }}">
+        </div>
+        <div>
+            <button type="submit">Create Person</button>
+        </div>
+    </form>
+
+    <p><a href="{{ base_url }}/people">Back to People List</a></p>
+{% endblock %}

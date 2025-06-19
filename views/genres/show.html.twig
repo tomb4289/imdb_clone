@@ -1,0 +1,19 @@
+{# imdb_clone/views/genres/show.html.twig #}
+{% extends 'Layouts/base.html.twig' %}
+
+{% block title %}{{ genre.name }} Details{% endblock %}
+
+{% block content %}
+    <h1>Genre: {{ genre.name }}</h1>
+
+    <p><strong>Genre ID:</strong> {{ genre.id }}</p>
+
+    <p><a href="{{ base_url }}/genres/edit?id={{ genre.id }}" class="button">Edit Genre</a></p>
+
+    <form action="{{ base_url }}/genres/delete" method="POST" style="display:inline; margin-left: 10px;">
+        <input type="hidden" name="id" value="{{ genre.id }}">
+        <button type="submit" onclick="return confirm('Are you sure you want to delete the genre &quot;{{ genre.name }}&quot;? This cannot be undone.');" class="button button-danger">Delete Genre</button>
+    </form>
+
+    <p><a href="{{ base_url }}/genres">Back to Genres List</a></p>
+{% endblock %}

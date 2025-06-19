@@ -1,0 +1,26 @@
+{# imdb_clone/views/movies/index.html.twig #}
+{% extends 'Layouts/base.html.twig' %} {# This should be the ONLY extends tag #}
+
+{% block title %}All Movies{% endblock %}
+
+{% block content %}
+    <h1>All Movies</h1>
+ <p><a href="{{ base_url }}/movies/create" class="button">Add New Movie</a></p>
+    {% if movies is empty %}
+        <p>No movies found. Maybe add some!</p>
+    {% else %}
+        <div class="movie-list"> {# Optional: Add CSS for 'movie-list' #}
+            {% for movie in movies %}
+                <div class="movie-item"> {# Optional: Add CSS for 'movie-item' #}
+                    <h2>
+                        <a href="{{ base_url }}/movies/show?id={{ movie.id }}">{{ movie.title }}</a>
+                    </h2>
+                    <p>Release Date: {{ movie.release_date }}</p>
+                    <p>{{ movie.description | length > 150 ? movie.description | slice(0, 150) ~ '...' : movie.description }}</p>
+                    <a href="{{ base_url }}/movies/show?id={{ movie.id }}" class="details-link">View Details</a>
+                </div>
+                {% if not loop.last %}<hr>{% endif %}
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}

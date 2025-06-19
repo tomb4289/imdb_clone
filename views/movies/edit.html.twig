@@ -1,0 +1,40 @@
+{# imdb_clone/views/movies/edit.html.twig #}
+{% extends 'Layouts/base.html.twig' %}
+
+{% block title %}Edit Movie: {{ movie.title }}{% endblock %}
+
+{% block content %}
+    <h1>Edit Movie: {{ movie.title }}</h1>
+
+    <form action="{{ base_url }}/movies/update" method="POST">
+        <input type="hidden" name="id" value="{{ movie.id }}">
+
+        <div>
+            <label for="title">Title:</label>
+            <input type="text" id="title" name="title" value="{{ movie.title }}" required>
+        </div>
+        <div>
+            <label for="release_date">Release Date:</label>
+            <input type="date" id="release_date" name="release_date" value="{{ movie.release_date }}" required>
+        </div>
+        <div>
+            <label for="description">Description:</label>
+            <textarea id="description" name="description" rows="5" required>{{ movie.description }}</textarea>
+        </div>
+        <div>
+            <label for="runtime">Runtime (minutes):</label>
+            <input type="number" id="runtime" name="runtime" value="{{ movie.runtime }}" required>
+        </div>
+        <div>
+            <label for="director_id">Director ID (Optional):</label>
+            <input type="number" id="director_id" name="director_id" value="{{ movie.director_id }}">
+            <small>You would typically use a select box populated from the people table here.</small>
+        </div>
+        <div>
+            <button type="submit" class="button">Update Movie</button>
+        </div>
+    </form>
+
+    <p><a href="{{ base_url }}/movies/show?id={{ movie.id }}">Back to Movie Details</a></p>
+    <p><a href="{{ base_url }}/movies">Back to Movies List</a></p>
+{% endblock %}

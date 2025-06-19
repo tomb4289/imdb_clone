@@ -1,0 +1,27 @@
+{# imdb_clone/views/people/edit.html.twig #}
+{% extends 'Layouts/base.html.twig' %}
+
+{% block title %}Edit Person: {{ person.name }}{% endblock %}
+
+{% block content %}
+    <h1>Edit Person: {{ person.name }}</h1>
+
+    <form action="{{ base_url }}/people/update" method="POST">
+        <input type="hidden" name="id" value="{{ person.id }}">
+
+        <div>
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" value="{{ person.name }}" required>
+        </div>
+        <div>
+            <label for="birth_year">Birth Year (Optional):</label>
+            <input type="number" id="birth_year" name="birth_year" value="{{ person.birth_year }}" min="1900" max="{{ "now"|date("Y") }}">
+        </div>
+        <div>
+            <button type="submit" class="button">Update Person</button>
+        </div>
+    </form>
+
+    <p><a href="{{ base_url }}/people/show?id={{ person.id }}">Back to Person Details</a></p>
+    <p><a href="{{ base_url }}/people">Back to People List</a></p>
+{% endblock %}

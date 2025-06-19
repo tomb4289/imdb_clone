@@ -54,4 +54,4 @@ if (!$genre) {
 
 <p><a href="genres.php">Back to Genres List</a></p>
 
-<?php include 'footer.php'; ?>
+<?php include '../includes/footer.php'; ?>

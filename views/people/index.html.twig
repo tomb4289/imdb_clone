@@ -1,0 +1,28 @@
+{# imdb_clone/views/people/index.html.twig #}
+{% extends 'Layouts/base.html.twig' %}
+
+{% block title %}All People{% endblock %}
+
+{% block content %}
+    <h1>All People</h1>
+
+    <p><a href="{{ base_url }}/people/create">Add New Person</a></p>
+
+    {% if people is empty %}
+        <p>No people found. Make sure your 'people' table is populated!</p>
+    {% else %}
+        <div class="people-list">
+            <ul>
+            {% for person in people %}
+                <li>
+                    {# Assuming person has 'id', 'name', and 'birth_year' columns #}
+                    <a href="{{ base_url }}/people/show?id={{ person.id }}">
+                        <strong>{{ person.name }}</strong>
+                        {% if person.birth_year %} ({{ person.birth_year }}){% endif %}
+                    </a>
+                </li>
+            {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+{% endblock %}

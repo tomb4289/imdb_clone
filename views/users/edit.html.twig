@@ -1,0 +1,30 @@
+{# imdb_clone/views/users/edit.html.twig #}
+{% extends 'Layouts/base.html.twig' %}
+
+{% block title %}Edit User: {{ user.username }}{% endblock %}
+
+{% block content %}
+    <h1>Edit User: {{ user.username }}</h1>
+
+    <form action="{{ base_url }}/users/update" method="POST">
+        <input type="hidden" name="id" value="{{ user.id }}">
+        <div>
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" value="{{ user.username }}" required>
+        </div>
+        <div>
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" value="{{ user.email }}" required>
+        </div>
+        <div>
+            <label for="password">New Password (leave blank to keep current):</label>
+            <input type="password" id="password" name="password">
+        </div>
+        <div>
+            <button type="submit" class="button">Update User</button>
+        </div>
+    </form>
+
+    <p><a href="{{ base_url }}/users/show?id={{ user.id }}">Back to User Details</a></p>
+    <p><a href="{{ base_url }}/users">Back to User List</a></p>
+{% endblock %}
