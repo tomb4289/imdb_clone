@@ -13,9 +13,9 @@ return [
     ],
     'database' => [
         'host' => 'localhost',
-        'dbname' => 'imdb_clone',
-        'user' => 'root',
-        'password' => 'admin', 
+        'dbname' => 'e2496310',
+        'user' => 'e2496310',
+        'password' => 'Qs6RfaEwkd2Ca2ZWWl2J', 
         'charset' => 'utf8mb4',
     ],
     'paths' => [
