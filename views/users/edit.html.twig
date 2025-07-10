@@ -6,7 +6,7 @@
 {% block content %}
     <h1>Edit User: {{ user.username }}</h1>
 
-    <form action="{{ base_url }}/users/update" method="POST">
+    <form action="{{ BASE }}/users/update" method="POST">
         <input type="hidden" name="id" value="{{ user.id }}">
         <div>
             <label for="username">Username:</label>
@@ -25,6 +25,6 @@
         </div>
     </form>
 
-    <p><a href="{{ base_url }}/users/show?id={{ user.id }}">Back to User Details</a></p>
-    <p><a href="{{ base_url }}/users">Back to User List</a></p>
+    <p><a href="{{ BASE }}/users/show?id={{ user.id }}">Back to User Details</a></p>
+    <p><a href="{{ BASE }}/users">Back to User List</a></p>
 {% endblock %}

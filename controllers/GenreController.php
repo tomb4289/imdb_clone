@@ -1,10 +1,10 @@
 <?php
-// imdb_clone/controllers/GenreController.php
 namespace App\Controllers;
 
 use PDO;
 use Twig\Environment;
 use App\Models\Genre;
+use App\Providers\Auth;
 
 class GenreController
 {
@@ -12,7 +12,7 @@ class GenreController
     protected Environment $twig;
     protected Genre $genreModel;
 
-    public function __construct(PDO $pdo, Environment $twig)
+    public function __construct(PDO $pdo, Environment $twig, array $config)
     {
         $this->pdo = $pdo;
         $this->twig = $twig;
@@ -21,6 +21,7 @@ class GenreController
 
     public function index()
     {
+        Auth::session();
         $genres = $this->genreModel->all();
         echo $this->twig->render('genres/index.html.twig', [
             'genres' => $genres,
@@ -30,6 +31,7 @@ class GenreController
 
     public function show($queryParams = [])
     {
+        Auth::session();
         $genreId = $queryParams['id'] ?? null;
         if (empty($genreId)) {
             http_response_code(404);
@@ -53,10 +55,14 @@ class GenreController
     }
 
     public function create() {
+        Auth::session();
+        Auth::privilege(1);
         echo $this->twig->render('genres/create.html.twig', ['base_url' => BASE]);
     }
 
     public function store($postData) {
+        Auth::session();
+        Auth::privilege(1);
         try {
             $name = $postData['name'] ?? null;
             if (empty($name)) {
@@ -82,6 +88,8 @@ class GenreController
 
     public function edit($queryParams = [])
     {
+        Auth::session();
+        Auth::privilege(1);
         $genreId = $queryParams['id'] ?? null;
         if (empty($genreId)) {
             http_response_code(404);
@@ -109,6 +117,8 @@ class GenreController
 
     public function update($postData)
     {
+        Auth::session();
+        Auth::privilege(1);
         $genreId = $postData['id'] ?? null;
         $name = $postData['name'] ?? null;
 
@@ -138,6 +148,8 @@ class GenreController
 
     public function delete($postData)
     {
+        Auth::session();
+        Auth::privilege(1);
         $genreId = $postData['id'] ?? null;
 
         if (empty($genreId)) {

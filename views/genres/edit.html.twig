@@ -6,7 +6,7 @@
 {% block content %}
     <h1>Edit Genre: {{ genre.name }}</h1>
 
-    <form action="{{ base_url }}/genres/update" method="POST">
+    <form action="{{ BASE }}/genres/update" method="POST">
         <input type="hidden" name="id" value="{{ genre.id }}">
 
         <div>
@@ -18,6 +18,6 @@
         </div>
     </form>
 
-    <p><a href="{{ base_url }}/genres/show?id={{ genre.id }}">Back to Genre Details</a></p>
-    <p><a href="{{ base_url }}/genres">Back to Genres List</a></p>
+    <p><a href="{{ BASE }}/genres/show?id={{ genre.id }}">Back to Genre Details</a></p>
+    <p><a href="{{ BASE }}/genres">Back to Genres List</a></p>
 {% endblock %}

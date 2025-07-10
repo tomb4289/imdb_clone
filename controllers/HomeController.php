@@ -1,29 +1,24 @@
 <?php
-// imdb_clone/controllers/HomeController.php
 namespace App\Controllers;
 
 use PDO;
 use Twig\Environment;
 use App\Models\Movie;
 
-class HomeController
+class HomeController extends BaseController
 {
-    protected PDO $pdo;
-    protected Environment $twig;
+    protected Movie $movieModel;
 
-    public function __construct(PDO $pdo, Environment $twig)
+    public function __construct(PDO $pdo, Environment $twig, array $config)
     {
-        $this->pdo = $pdo;
-        $this->twig = $twig;
+        parent::__construct($pdo, $twig, $config);
+        $this->movieModel = new Movie($pdo);
     }
 
     public function index()
     {
-        $movieModel = new Movie($this->pdo);
+        $recentMovies = $this->movieModel->getRecent(5);
 
-        $recentMovies = $movieModel->getRecent(5); // Get the 5 most recent movies
-
-        // Render the home Twig template, passing the fetched movies data
         echo $this->twig->render('Layouts/home.html.twig', [
             'recent_movies' => $recentMovies
         ]);

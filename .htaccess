@@ -1,12 +1,9 @@
-# imdb_clone/.htaccess
+# D:\Ecole\WebDynamique\web_dynamique_24632-main-LATEST\imdb_clone\.htaccess
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
-
     RewriteBase /imdb_clone/
-
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^(.*)$ index.php [QSA,L]
-
 </IfModule>

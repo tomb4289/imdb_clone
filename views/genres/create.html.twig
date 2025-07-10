@@ -6,7 +6,7 @@
 {% block content %}
     <h1>Add New Genre</h1>
 
-    <form action="{{ base_url }}/genres/store" method="POST">
+    <form action="{{ BASE }}/genres/store" method="POST">
         <div>
             <label for="name">Genre Name:</label>
             <input type="text" id="name" name="name" required>
@@ -16,5 +16,5 @@
         </div>
     </form>
 
-    <p><a href="{{ base_url }}/genres">Back to Genres List</a></p>
+    <p><a href="{{ BASE }}/genres">Back to Genres List</a></p>
 {% endblock %}

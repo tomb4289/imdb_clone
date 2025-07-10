@@ -1,6 +1,13 @@
 CREATE DATABASE IF NOT EXISTS imdb_clone CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE imdb_clone;
 
+CREATE TABLE privileges (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE
+);
+
+INSERT INTO privileges (name) VALUES ('admin'), ('user');
+
 CREATE TABLE people (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -42,121 +49,90 @@ CREATE TABLE movie_people (
 
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(100) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    privilege_id INT NOT NULL DEFAULT 2,
+    FOREIGN KEY (privilege_id) REFERENCES privileges(id)
 );
 
-CREATE TABLE ratings (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    movie_id INT NOT NULL,
-    user_id INT NOT NULL,
-    rating DECIMAL(3,1) NOT NULL CHECK (rating BETWEEN 1.0 AND 10.0),
-    review TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE (movie_id, user_id)
-);
+INSERT INTO users (name, username, password, email, privilege_id) VALUES
+('Admin User', 'admin', '$2y$10$vK6P7HqP7P5L5S8V7R4R4Q6W3M9L6C8B5X1Y7Z2A0/d2a3e4f5g6h7i8j9k0l1m2n3o4p5q6r7s8t9u0v1w2x3y4z5a6b7c8d9e0f1g2h3i4j', 'admin@example.com', 1),
+('Regular User', 'user', '$2y$10$vK6P7HqP7P5L5S8V7R4R4Q6W3M9L6C8B5X1Y7Z2A0/d2a3e4f5g6h7i8j9k0l1m2n3o4p5q6r7s8t9u0v1w2x3y4z5a6b7c8d9e0f1g2h3i4j', 'user@example.com', 2);
 
-CREATE TABLE rating_categories (
+CREATE TABLE activity_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE
-);
-
-CREATE TABLE category_ratings (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    movie_id INT NOT NULL,
-    user_id INT NOT NULL,
-    category_id INT NOT NULL,
-    rating INT CHECK (rating BETWEEN 1 AND 10),
-    FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (category_id) REFERENCES rating_categories(id) ON DELETE CASCADE,
-    UNIQUE (movie_id, user_id, category_id)
+    user_id INT NULL,
+    username VARCHAR(255) NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    page_visited VARCHAR(255) NOT NULL,
+    request_method VARCHAR(10) NOT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    user_agent TEXT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 INSERT INTO people (name, birth_year) VALUES
-('Christopher Nolan', 1970),
 ('Quentin Tarantino', 1963),
-('James Cameron', 1954),
-('Greta Gerwig', 1983),
-('Denis Villeneuve', 1967),
-('Hayao Miyazaki', 1941),
-('Bong Joon-ho', 1969),
-('Frank Darabont', 1959),
-('Peter Jackson', 1961),
-('Lana Wachowski', 1965),
-('Lilly Wachowski', 1967),
+('Christopher Nolan', 1970),
 ('Alfred Hitchcock', 1899),
-('Steven Spielberg', 1946);
+('Steven Spielberg', 1946),
+('Leonardo DiCaprio', 1974),
+('Uma Thurman', 1970),
+('Christian Bale', 1974),
+('Joseph Gordon-Levitt', 1981),
+('Jeff Goldblum', 1952),
+('Sam Neill', 1947),
+('Laura Dern', 1967),
+('Anthony Perkins', 1932),
+('Janet Leigh', 1927),
+('John Travolta', 1954),
+('Samuel L. Jackson', 1948),
+('Bruce Willis', 1955),
+('Uma Thurman', 1970),
+('Keanu Reeves', 1964),
+('Laurence Fishburne', 1961),
+('Carrie-Anne Moss', 1967),
+('Elijah Wood', 1981),
+('Ian McKellen', 1939),
+('Viggo Mortensen', 1958),
+('Orlando Bloom', 1977);
+
+
+INSERT INTO movies (title, release_date, description, runtime, director_id) VALUES
+('Pulp Fiction', '1994-10-14', 'The lives of two mob hitmen, a boxer, a gangster\'s wife, and a pair of diner bandits intertwine in four tales of violence and redemption.', 154, (SELECT id FROM people WHERE name = 'Quentin Tarantino')),
+('Inception', '2010-07-16', 'A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a C.E.O.', 148, (SELECT id FROM people WHERE name = 'Christopher Nolan')),
+('The Lord of the Rings: The Fellowship of the Ring', '2001-12-19', 'A young hobbit, Frodo Baggins, inherits a magical ring that he must destroy to save Middle-earth from the Dark Lord Sauron.', 178, NULL),
+('The Matrix', '1999-03-31', 'A computer hacker learns from mysterious rebels about the true nature of his reality and his role in the war against its controllers.', 136, NULL),
+('Psycho', '1960-09-08', 'A Phoenix secretary embezzles $40,000 from her employer, goes on the run, and checks into a remote motel run by a disturbed young man.', 109, (SELECT id FROM people WHERE name = 'Alfred Hitchcock')),
+('Jurassic Park', '1993-06-11', 'A pragmatic paleontologist touring an almost complete theme park on an island in Central America is tasked with protecting a couple of kids after a power failure causes the park\'s cloned dinosaurs to run loose.', 127, (SELECT id FROM people WHERE name = 'Steven Spielberg')),
+('Interstellar', '2014-11-07', 'A team of explorers travel through a wormhole in space in an attempt to ensure humanity\'s survival.', 169, (SELECT id FROM people WHERE name = 'Christopher Nolan')),
+('Django Unchained', '2012-12-25', 'With the help of a German bounty hunter, a freed slave sets out to rescue his wife from a brutal Mississippi plantation owner.', 165, (SELECT id FROM people WHERE name = 'Quentin Tarantino'));
+
 
 INSERT INTO genres (name) VALUES
-('Sci-Fi'),
 ('Action'),
-('Thriller'),
-('Drama'),
 ('Crime'),
-('Adventure'),
-('Fantasy'),
-('Animation'),
-('Comedy'),
-('Romance'),
+('Drama'),
+('Sci-Fi'),
+('Thriller'),
 ('Horror'),
 ('Mystery'),
-('Western');
-
-INSERT INTO movies (title, release_date, description, runtime, director_id, poster_path) VALUES
-('Inception', '2010-07-16', 'A thief who steals corporate secrets through use of dream-sharing technology is given the inverse task of planting an idea into the mind of a CEO.', 148, (SELECT id FROM people WHERE name = 'Christopher Nolan'), NULL),
-('Pulp Fiction', '1994-10-14', 'The lives of two mob hitmen, a boxer, a gangster and his wife, and a pair of diner bandits intertwine in four tales of violence and redemption.', 154, (SELECT id FROM people WHERE name = 'Quentin Tarantino'), NULL),
-('Avatar', '2009-12-18', 'A paraplegic marine dispatched to the moon Pandora on a unique mission becomes torn between following orders and protecting the world he feels is his home.', 162, (SELECT id FROM people WHERE name = 'James Cameron'), NULL),
-('Barbie', '2023-07-21', 'Barbie and Ken are having the time of their lives in the colorful and seemingly perfect world of Barbie Land. However, when they get a chance to go to the real world, they soon discover the joys and perils of living among humans.', 114, (SELECT id FROM people WHERE name = 'Greta Gerwig'), NULL),
-('Dune', '2021-10-22', 'A noble family becomes embroiled in a war for control over the galaxy\'s most valuable asset while its heir becomes troubled by visions of a dark future.', 155, (SELECT id FROM people WHERE name = 'Denis Villeneuve'), NULL),
-('Spirited Away', '2001-07-20', 'During her family\'s move to the suburbs, a sullen 10-year-old girl wanders into a world ruled by gods, witches, and spirits, and where humans are changed into beasts.', 125, (SELECT id FROM people WHERE name = 'Hayao Miyazaki'), NULL),
-('Parasite', '2019-05-30', 'Greed and class discrimination threaten the newly formed symbiotic relationship between the wealthy Park family and the destitute Kim clan.', 132, (SELECT id FROM people WHERE name = 'Bong Joon-ho'), NULL),
-('The Shawshank Redemption', '1994-09-23', 'Two imprisoned men bond over a number of years, finding solace and eventual redemption through acts of common decency.', 142, (SELECT id FROM people WHERE name = 'Frank Darabont'), NULL),
-('The Lord of the Rings: The Fellowship of the Ring', '2001-12-19', 'A young hobbit, Frodo Baggins, inherits a magical ring that he must take to Mount Doom to destroy in order to save Middle-earth from the Dark Lord Sauron.', 178, (SELECT id FROM people WHERE name = 'Peter Jackson'), NULL),
-('The Matrix', '1999-03-31', 'A computer hacker learns from mysterious rebels about the true nature of his reality and his role in the war against its controllers.', 136, (SELECT id FROM people WHERE name = 'Lana Wachowski'), NULL),
-('Psycho', '1960-09-08', 'A Phoenix secretary embezzles $40,000 from her employer\'s client, goes on the run, and checks into a remote motel run by a young man under the domination of his mother.', 109, (SELECT id FROM people WHERE name = 'Alfred Hitchcock'), NULL),
-('Jurassic Park', '1993-06-11', 'A pragmatic paleontologist touring an island theme park of genetically re-created dinosaurs, with a lawyer and mathematician, tries to protect his two young grandchildren when a power failure causes the creatures to run amok.', 127, (SELECT id FROM people WHERE name = 'Steven Spielberg'), NULL),
-('Interstellar', '2014-11-07', 'A team of explorers travel through a wormhole in space in an attempt to ensure humanity\'s survival.', 169, (SELECT id FROM people WHERE name = 'Christopher Nolan'), NULL),
-('Django Unchained', '2012-12-25', 'With the help of a German bounty hunter, a freed slave sets out to rescue his wife from a brutal Mississippi plantation owner.', 165, (SELECT id FROM people WHERE name = 'Quentin Tarantino'), NULL);
+('Adventure'),
+('Western'),
+('Fantasy');
 
 INSERT INTO movie_genres (movie_id, genre_id) VALUES
-((SELECT id FROM movies WHERE title = 'Inception'), (SELECT id FROM genres WHERE name = 'Sci-Fi')),
-((SELECT id FROM movies WHERE title = 'Inception'), (SELECT id FROM genres WHERE name = 'Action')),
-((SELECT id FROM movies WHERE title = 'Inception'), (SELECT id FROM genres WHERE name = 'Adventure')),
-((SELECT id FROM movies WHERE title = 'Inception'), (SELECT id FROM genres WHERE name = 'Thriller')),
-
 ((SELECT id FROM movies WHERE title = 'Pulp Fiction'), (SELECT id FROM genres WHERE name = 'Crime')),
 ((SELECT id FROM movies WHERE title = 'Pulp Fiction'), (SELECT id FROM genres WHERE name = 'Drama')),
-((SELECT id FROM movies WHERE title = 'Pulp Fiction'), (SELECT id FROM genres WHERE name = 'Thriller')),
 
-((SELECT id FROM movies WHERE title = 'Avatar'), (SELECT id FROM genres WHERE name = 'Sci-Fi')),
-((SELECT id FROM movies WHERE title = 'Avatar'), (SELECT id FROM genres WHERE name = 'Action')),
-((SELECT id FROM movies WHERE title = 'Avatar'), (SELECT id FROM genres WHERE name = 'Adventure')),
-
-((SELECT id FROM movies WHERE title = 'Barbie'), (SELECT id FROM genres WHERE name = 'Comedy')),
-((SELECT id FROM movies WHERE title = 'Barbie'), (SELECT id FROM genres WHERE name = 'Fantasy')),
-((SELECT id FROM movies WHERE title = 'Barbie'), (SELECT id FROM genres WHERE name = 'Adventure')),
-
-((SELECT id FROM movies WHERE title = 'Dune'), (SELECT id FROM genres WHERE name = 'Sci-Fi')),
-((SELECT id FROM movies WHERE title = 'Dune'), (SELECT id FROM genres WHERE name = 'Adventure')),
-((SELECT id FROM movies WHERE title = 'Dune'), (SELECT id FROM genres WHERE name = 'Drama')),
-
-((SELECT id FROM movies WHERE title = 'Spirited Away'), (SELECT id FROM genres WHERE name = 'Animation')),
-((SELECT id FROM movies WHERE title = 'Spirited Away'), (SELECT id FROM genres WHERE name = 'Adventure')),
-((SELECT id FROM movies WHERE title = 'Spirited Away'), (SELECT id FROM genres WHERE name = 'Fantasy')),
-
-((SELECT id FROM movies WHERE title = 'Parasite'), (SELECT id FROM genres WHERE name = 'Drama')),
-((SELECT id FROM movies WHERE title = 'Parasite'), (SELECT id FROM genres WHERE name = 'Thriller')),
-((SELECT id FROM movies WHERE title = 'Parasite'), (SELECT id FROM genres WHERE name = 'Comedy')),
-
-((SELECT id FROM movies WHERE title = 'The Shawshank Redemption'), (SELECT id FROM genres WHERE name = 'Drama')),
+((SELECT id FROM movies WHERE title = 'Inception'), (SELECT id FROM genres WHERE name = 'Action')),
+((SELECT id FROM movies WHERE title = 'Inception'), (SELECT id FROM genres WHERE name = 'Sci-Fi')),
+((SELECT id FROM movies WHERE title = 'Inception'), (SELECT id FROM genres WHERE name = 'Adventure')),
 
 ((SELECT id FROM movies WHERE title = 'The Lord of the Rings: The Fellowship of the Ring'), (SELECT id FROM genres WHERE name = 'Fantasy')),
-((SELECT id FROM movies WHERE title = 'The Lord of the Rings: The Fellowship of the Ring'), (SELECT id FROM genres WHERE name = 'Adventure')),
+((SELECT id FROM movies WHERE title = 'The Lord of the Rings: The Fellowship of the Ring'), (SELECT id FROM genres WHERE name = 'Adventure') ),
 ((SELECT id FROM movies WHERE title = 'The Lord of the Rings: The Fellowship of the Ring'), (SELECT id FROM genres WHERE name = 'Drama')),
 
 ((SELECT id FROM movies WHERE title = 'The Matrix'), (SELECT id FROM genres WHERE name = 'Sci-Fi')),

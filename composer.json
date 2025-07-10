@@ -4,10 +4,12 @@
       "App\\Controllers\\": "controllers/",
       "App\\Models\\": "models/",
       "App\\Routes\\": "routes/",
-      "App\\Providers\\": "providers/"
+      "App\\Providers\\": "providers/",
+      "App\\Services\\": "services/"
     }
   },
   "require": {
-    "twig/twig": "^3.21"
+    "twig/twig": "^3.21",
+    "resend/resend-php": "^0.18.1"
   }
 }

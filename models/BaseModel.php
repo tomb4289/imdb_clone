@@ -1,5 +1,4 @@
 <?php
-// imdb_clone/models/BaseModel.php
 namespace App\Models;
 
 use PDO;

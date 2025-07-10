@@ -1,34 +1,29 @@
 <?php
-// imdb_clone/controllers/PersonController.php
 namespace App\Controllers;
 
 use PDO;
 use Twig\Environment;
 use App\Models\Person;
+use App\Providers\Auth;
 
-class PersonController
+class PersonController extends BaseController
 {
-    protected PDO $pdo;
-    protected Environment $twig;
     protected Person $personModel;
 
-    public function __construct(PDO $pdo, Environment $twig)
+    public function __construct(PDO $pdo, Environment $twig, array $config)
     {
-        $this->pdo = $pdo;
-        $this->twig = $twig;
+        parent::__construct($pdo, $twig, $config);
         $this->personModel = new Person($this->pdo);
     }
 
-
     public function index()
     {
-        $people = $this->personModel->all(); 
+        $people = $this->personModel->all();
         echo $this->twig->render('people/index.html.twig', [
-            'people' => $people, 
-            'base_url' => BASE 
+            'people' => $people,
+            'base_url' => BASE
         ]);
     }
-
 
     public function show($queryParams = [])
     {
@@ -41,7 +36,7 @@ class PersonController
         }
 
         try {
-            $person = $this->personModel->find($personId); 
+            $person = $this->personModel->find($personId);
 
             if (!$person) {
                 http_response_code(404);
@@ -60,10 +55,14 @@ class PersonController
     }
 
     public function create() {
+        Auth::session();
+        Auth::privilege(1);
         echo $this->twig->render('people/create.html.twig', ['base_url' => BASE]);
     }
 
     public function store($postData) {
+        Auth::session();
+        Auth::privilege(1);
         try {
             $name = $postData['name'] ?? null;
             $birth_year = $postData['birth_year'] ?? null;
@@ -74,8 +73,12 @@ class PersonController
                 return;
             }
 
+            $data = [
+                'name' => $name,
+                'birth_year' => !empty($birth_year) ? $birth_year : null
+            ];
 
-            if ($this->personModel->create($name, $birth_year)) {
+            if ($this->personModel->create($data)) {
                 header('Location: ' . BASE . '/people');
                 exit();
             } else {
@@ -91,9 +94,10 @@ class PersonController
         }
     }
 
-
     public function edit($queryParams = [])
     {
+        Auth::session();
+        Auth::privilege(1);
         $personId = $queryParams['id'] ?? null;
 
         if (empty($personId)) {
@@ -124,14 +128,15 @@ class PersonController
         }
     }
 
-
     public function update($postData)
     {
+        Auth::session();
+        Auth::privilege(1);
         $personId = $postData['id'] ?? null;
         $name = $postData['name'] ?? null;
         $birth_year = $postData['birth_year'] ?? null;
 
-        if (empty($personId) || empty($name)) { 
+        if (empty($personId) || empty($name)) {
             http_response_code(400);
             echo $this->twig->render('error/400.html.twig', ['message' => 'Person ID and name are required for update.', 'base_url' => BASE]);
             return;
@@ -140,11 +145,11 @@ class PersonController
         try {
             $data = [
                 'name' => $name,
-                'birth_year' => !empty($birth_year) ? $birth_year : null 
+                'birth_year' => !empty($birth_year) ? $birth_year : null
             ];
 
-            if ($this->personModel->update($personId, $data)) { 
-                header('Location: ' . BASE . '/people/show?id=' . $personId); 
+            if ($this->personModel->update($personId, $data)) {
+                header('Location: ' . BASE . '/people/show?id=' . $personId);
                 exit();
             } else {
                 error_log("Error updating person via BaseModel::update.");
@@ -160,9 +165,10 @@ class PersonController
         }
     }
 
-
     public function delete($postData)
     {
+        Auth::session();
+        Auth::privilege(1);
         $personId = $postData['id'] ?? null;
 
         if (empty($personId)) {
@@ -172,8 +178,7 @@ class PersonController
         }
 
         try {
-            if ($this->personModel->delete($personId)) { 
-
+            if ($this->personModel->delete($personId)) {
                 header('Location: ' . BASE . '/people');
                 exit();
             } else {

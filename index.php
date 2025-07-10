@@ -1,8 +1,8 @@
 <?php
 
-session_start(); 
+session_start();
 
-require_once __DIR__ . '/vendor/autoload.php'; 
+require_once __DIR__ . '/vendor/autoload.php';
 
 $config = require_once __DIR__ . '/config.php';
 
@@ -27,16 +27,17 @@ try {
 
 $loader = new \Twig\Loader\FilesystemLoader($config['paths']['templates']);
 $twig = new \Twig\Environment($loader, [
-    'cache' => $config['app']['debug'] ? false : $config['paths']['root'] . 'var/cache/twig', // Use cache in production
+    'cache' => $config['app']['debug'] ? false : $config['paths']['root'] . 'var/cache/twig',
     'debug' => $config['app']['debug'],
 ]);
+
+$twig->addGlobal('BASE', BASE);
+$twig->addGlobal('ASSET', ASSET);
 
 if ($config['app']['debug']) {
     $twig->addExtension(new \Twig\Extension\DebugExtension());
 }
 
-$twig->addGlobal('app_name', $config['app']['name']);
-$twig->addGlobal('base_url', BASE);
-$twig->addGlobal('asset_url', ASSET);
+require_once __DIR__ . '/routes/web.php';
 
-require_once $config['paths']['routes'] . 'web.php';
+\App\Routes\Route::dispatch($pdo, $twig, $config);

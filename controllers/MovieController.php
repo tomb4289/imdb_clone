@@ -1,219 +1,241 @@
 <?php
-// imdb_clone/controllers/MovieController.php
 namespace App\Controllers;
 
 use PDO;
 use Twig\Environment;
 use App\Models\Movie;
+use App\Models\Genre;
 use App\Models\Person;
+use App\Providers\Validator;
+use App\Providers\View;
+use App\Providers\Auth; // For privilege check
 
-class MovieController
+class MovieController extends BaseController
 {
-    protected PDO $pdo;
-    protected Environment $twig;
     protected Movie $movieModel;
+    protected Genre $genreModel;
     protected Person $personModel;
 
-    public function __construct(PDO $pdo, Environment $twig)
+    public function __construct(PDO $pdo, Environment $twig, array $config)
     {
-        $this->pdo = $pdo;
-        $this->twig = $twig;
-        $this->movieModel = new Movie($this->pdo);
-        $this->personModel = new Person($this->pdo);
+        parent::__construct($pdo, $twig, $config);
+        $this->movieModel = new Movie($pdo);
+        $this->genreModel = new Genre($pdo);
+        $this->personModel = new Person($pdo);
     }
 
     public function index()
     {
-        $movies = $this->movieModel->all();
-        echo $this->twig->render('movies/index.html.twig', [
-            'movies' => $movies,
-            'base_url' => BASE
-        ]);
+        $movies = $this->movieModel->getAllWithDetails();
+        echo $this->twig->render('movies/index.html.twig', ['movies' => $movies]);
     }
 
-    public function show($queryParams = [])
+    public function show(array $queryParams)
     {
-        $movieId = $queryParams['id'] ?? null;
-
-        if (empty($movieId)) {
+        $id = $queryParams['id'] ?? null;
+        if (!$id) {
+            View::redirect('movies');
+        }
+        $movie = $this->movieModel->getByIdWithDetails($id);
+        if (!$movie) {
             http_response_code(404);
-            echo $this->twig->render('error/404.html.twig', ['base_url' => BASE]);
+            echo $this->twig->render('error/404.html.twig');
             return;
         }
-
-        try {
-            $movie = $this->movieModel->find($movieId);
-
-            if (!$movie) {
-                http_response_code(404);
-                echo $this->twig->render('error/404.html.twig', ['base_url' => BASE]);
-                return;
-            }
-
-            echo $this->twig->render('movies/show.html.twig', ['movie' => $movie, 'base_url' => BASE]);
-
-        } catch (\PDOException $e) {
-            error_log("Database Error in MovieController::show: " . $e->getMessage());
-            http_response_code(500);
-            echo $this->twig->render('error/500.html.twig', ['base_url' => BASE]);
-            return;
-        }
+        echo $this->twig->render('movies/show.html.twig', ['movie' => $movie]);
     }
-
 
     public function create()
     {
+        if (!Auth::privilege(1)) { // Only admin (privilege_id 1) can create
+            return;
+        }
+        $genres = $this->genreModel->getAll();
+        $people = $this->personModel->getAll();
+        echo $this->twig->render('movies/create.html.twig', ['genres' => $genres, 'people' => $people, 'errors' => [], 'old' => []]);
+    }
 
-        $directors = $this->personModel->all(); 
+    public function store(array $postData)
+    {
+        if (!Auth::privilege(1)) {
+            return;
+        }
 
-        echo $this->twig->render('movies/create.html.twig', [
-            'base_url' => BASE,
-            'directors' => $directors 
+        $validator = new Validator();
+        $validator->field('title', $postData['title'])->required()->min(2)->max(255);
+        $validator->field('release_date', $postData['release_date'])->required();
+        $validator->field('runtime', $postData['runtime'])->required();
+        $validator->field('description', $postData['description'])->required()->min(10);
+        $validator->field('director_id', $postData['director_id']);
+        $validator->field('genre_ids', $postData['genre_ids']);
+
+        if ($validator->isSuccess()) {
+            $movieData = [
+                'title' => $postData['title'],
+                'release_date' => $postData['release_date'],
+                'runtime' => (int)$postData['runtime'],
+                'description' => $postData['description'],
+                'director_id' => !empty($postData['director_id']) ? (int)$postData['director_id'] : null,
+                'poster_path' => $postData['poster_path'] ?? null
+            ];
+
+            $this->pdo->beginTransaction();
+            try {
+                $movieId = $this->movieModel->create($movieData);
+
+                if ($movieId && !empty($postData['genre_ids'])) {
+                    $genreStmt = $this->pdo->prepare("INSERT INTO movie_genres (movie_id, genre_id) VALUES (:movie_id, :genre_id)");
+                    foreach ($postData['genre_ids'] as $genreId) {
+                        $genreStmt->execute([':movie_id' => $movieId, ':genre_id' => (int)$genreId]);
+                    }
+                }
+                $this->pdo->commit();
+                View::redirect('movies');
+            } catch (PDOException $e) {
+                $this->pdo->rollBack();
+                error_log("Movie creation error: " . $e->getMessage());
+                $errors['database'] = "Failed to create movie. Please try again.";
+                $genres = $this->genreModel->getAll();
+                $people = $this->personModel->getAll();
+                echo $this->twig->render('movies/create.html.twig', ['genres' => $genres, 'people' => $people, 'errors' => $errors, 'old' => $postData]);
+            }
+        } else {
+            $errors = $validator->getErrors();
+            $genres = $this->genreModel->getAll();
+            $people = $this->personModel->getAll();
+            echo $this->twig->render('movies/create.html.twig', ['genres' => $genres, 'people' => $people, 'errors' => $errors, 'old' => $postData]);
+        }
+    }
+
+    public function edit(array $queryParams)
+    {
+        if (!Auth::privilege(1)) {
+            return;
+        }
+        $id = $queryParams['id'] ?? null;
+        if (!$id) {
+            View::redirect('movies');
+        }
+        $movie = $this->movieModel->getByIdWithDetails($id);
+        if (!$movie) {
+            http_response_code(404);
+            echo $this->twig->render('error/404.html.twig');
+            return;
+        }
+        $genres = $this->genreModel->getAll();
+        $people = $this->personModel->getAll();
+
+        $selectedGenres = explode(', ', $movie['genres'] ?? '');
+        $selectedGenreIds = array_map(function($genreName) use ($genres) {
+            foreach ($genres as $genre) {
+                if ($genre['name'] === $genreName) {
+                    return $genre['id'];
+                }
+            }
+            return null;
+        }, $selectedGenres);
+        $selectedGenreIds = array_filter($selectedGenreIds);
+
+        echo $this->twig->render('movies/edit.html.twig', [
+            'movie' => $movie,
+            'genres' => $genres,
+            'people' => $people,
+            'selectedGenreIds' => $selectedGenreIds,
+            'errors' => [],
+            'old' => $movie
         ]);
     }
 
-    public function store($postData)
+    public function update(array $postData)
     {
-        $title = $postData['title'] ?? null;
-        $release_date = $postData['release_date'] ?? null;
-        $description = $postData['description'] ?? null;
-        $runtime = $postData['runtime'] ?? null;
-        $director_id = $postData['director_id'] ?? null;
-
-        // Basic validation
-        if (empty($title) || empty($release_date) || empty($description) || empty($runtime)) {
-            http_response_code(400);
-            echo $this->twig->render('error/400.html.twig', ['message' => 'Movie title, release date, description, and runtime are required.', 'base_url' => BASE]);
+        if (!Auth::privilege(1)) {
             return;
         }
 
-        try {
+        $id = $postData['id'] ?? null;
+        if (!$id) {
+            View::redirect('movies');
+        }
 
-            $data = [
-                'title' => $title,
-                'release_date' => $release_date,
-                'description' => $description,
-                'runtime' => $runtime,
-                'director_id' => !empty($director_id) ? $director_id : null 
+        $validator = new Validator();
+        $validator->field('title', $postData['title'])->required()->min(2)->max(255);
+        $validator->field('release_date', $postData['release_date'])->required();
+        $validator->field('runtime', $postData['runtime'])->required();
+        $validator->field('description', $postData['description'])->required()->min(10);
+        $validator->field('director_id', $postData['director_id']);
+        $validator->field('genre_ids', $postData['genre_ids']);
+
+        if ($validator->isSuccess()) {
+            $movieData = [
+                'title' => $postData['title'],
+                'release_date' => $postData['release_date'],
+                'runtime' => (int)$postData['runtime'],
+                'description' => $postData['description'],
+                'director_id' => !empty($postData['director_id']) ? (int)$postData['director_id'] : null,
+                'poster_path' => $postData['poster_path'] ?? null
             ];
 
-            if ($this->movieModel->create($data)) {
-                header('Location: ' . BASE . '/movies');
-                exit();
-            } else {
-                error_log("Error creating movie via BaseModel::create.");
-                http_response_code(500);
-                echo $this->twig->render('error/500.html.twig', ['base_url' => BASE, 'message' => 'Failed to create movie.']);
+            $this->pdo->beginTransaction();
+            try {
+                $this->movieModel->update($id, $movieData);
+
+                // Update movie_genres
+                $deleteStmt = $this->pdo->prepare("DELETE FROM movie_genres WHERE movie_id = :movie_id");
+                $deleteStmt->execute([':movie_id' => $id]);
+
+                if (!empty($postData['genre_ids'])) {
+                    $insertStmt = $this->pdo->prepare("INSERT INTO movie_genres (movie_id, genre_id) VALUES (:movie_id, :genre_id)");
+                    foreach ($postData['genre_ids'] as $genreId) {
+                        $insertStmt->execute([':movie_id' => $id, ':genre_id' => (int)$genreId]);
+                    }
+                }
+                $this->pdo->commit();
+                View::redirect('movies');
+            } catch (PDOException $e) {
+                $this->pdo->rollBack();
+                error_log("Movie update error: " . $e->getMessage());
+                $errors['database'] = "Failed to update movie. Please try again.";
+                $genres = $this->genreModel->getAll();
+                $people = $this->personModel->getAll();
+                echo $this->twig->render('movies/edit.html.twig', ['movie' => $postData, 'genres' => $genres, 'people' => $people, 'errors' => $errors, 'old' => $postData]);
             }
-
-        } catch (\PDOException $e) {
-            error_log("Database Error in MovieController::store: " . $e->getMessage());
-            http_response_code(500);
-            echo $this->twig->render('error/500.html.twig', ['base_url' => BASE]);
-            return;
-        }
-    }
-
-
-    public function edit($queryParams = [])
-    {
-        $movieId = $queryParams['id'] ?? null;
-
-        if (empty($movieId)) {
-            http_response_code(404);
-            echo $this->twig->render('error/404.html.twig', ['base_url' => BASE]);
-            return;
-        }
-
-        try {
-            $movie = $this->movieModel->find($movieId);
-            $directors = $this->personModel->all(); // Get all people for director dropdown
-
-            if (!$movie) {
-                http_response_code(404);
-                echo $this->twig->render('error/404.html.twig', ['base_url' => BASE]);
-                return;
-            }
+        } else {
+            $errors = $validator->getErrors();
+            $genres = $this->genreModel->getAll();
+            $people = $this->personModel->getAll();
+            $movie = $this->movieModel->getByIdWithDetails($id);
+            $selectedGenres = explode(', ', $movie['genres'] ?? '');
+            $selectedGenreIds = array_map(function($genreName) use ($genres) {
+                foreach ($genres as $genre) {
+                    if ($genre['name'] === $genreName) {
+                        return $genre['id'];
+                    }
+                }
+                return null;
+            }, $selectedGenres);
+            $selectedGenreIds = array_filter($selectedGenreIds);
 
             echo $this->twig->render('movies/edit.html.twig', [
-                'movie' => $movie,
-                'base_url' => BASE,
-                'directors' => $directors
+                'movie' => $postData,
+                'genres' => $genres,
+                'people' => $people,
+                'selectedGenreIds' => $selectedGenreIds,
+                'errors' => $errors,
+                'old' => $postData
             ]);
-
-        } catch (\PDOException $e) {
-            error_log("Database Error in MovieController::edit: " . $e->getMessage());
-            http_response_code(500);
-            echo $this->twig->render('error/500.html.twig', ['base_url' => BASE]);
-            return;
         }
     }
 
-    public function update($postData)
+    public function delete(array $postData)
     {
-        $movieId = $postData['id'] ?? null;
-        $title = $postData['title'] ?? null;
-        $release_date = $postData['release_date'] ?? null;
-        $description = $postData['description'] ?? null;
-        $runtime = $postData['runtime'] ?? null;
-        $director_id = $postData['director_id'] ?? null;
-
-        if (empty($movieId) || empty($title) || empty($release_date) || empty($description) || empty($runtime)) {
-            http_response_code(400);
-            echo $this->twig->render('error/400.html.twig', ['message' => 'All movie fields (except director) are required for update.', 'base_url' => BASE]);
+        if (!Auth::privilege(1)) {
             return;
         }
-
-        try {
-            $data = [
-                'title' => $title,
-                'release_date' => $release_date,
-                'description' => $description,
-                'runtime' => $runtime,
-                'director_id' => !empty($director_id) ? $director_id : null
-            ];
-
-            if ($this->movieModel->update($movieId, $data)) {
-                header('Location: ' . BASE . '/movies/show?id=' . $movieId);
-                exit();
-            } else {
-                error_log("Error updating movie via BaseModel::update.");
-                http_response_code(500);
-                echo $this->twig->render('error/500.html.twig', ['base_url' => BASE, 'message' => 'Failed to update movie.']);
-            }
-
-        } catch (\PDOException $e) {
-            error_log("Database Error in MovieController::update: " . $e->getMessage());
-            http_response_code(500);
-            echo $this->twig->render('error/500.html.twig', ['base_url' => BASE]);
-            return;
+        $id = $postData['id'] ?? null;
+        if (!$id) {
+            View::redirect('movies');
         }
-    }
-
-    public function delete($postData)
-    {
-        $movieId = $postData['id'] ?? null;
-
-        if (empty($movieId)) {
-            http_response_code(400);
-            echo $this->twig->render('error/400.html.twig', ['message' => 'Movie ID is required for deletion.', 'base_url' => BASE]);
-            return;
-        }
-
-        try {
-            if ($this->movieModel->delete($movieId)) {
-                header('Location: ' . BASE . '/movies');
-                exit();
-            } else {
-                error_log("Error deleting movie via BaseModel::delete.");
-                http_response_code(500);
-                echo $this->twig->render('error/500.html.twig', ['base_url' => BASE, 'message' => 'Failed to delete movie.']);
-            }
-        } catch (\PDOException $e) {
-            error_log("Database Error in MovieController::delete: " . $e->getMessage());
-            http_response_code(500);
-            echo $this->twig->render('error/500.html.twig', ['base_url' => BASE]);
-            return;
-        }
+        $this->movieModel->delete($id);
+        View::redirect('movies');
     }
 }

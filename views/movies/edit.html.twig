@@ -6,7 +6,7 @@
 {% block content %}
     <h1>Edit Movie: {{ movie.title }}</h1>
 
-    <form action="{{ base_url }}/movies/update" method="POST">
+    <form action="{{ BASE }}/movies/update" method="POST">
         <input type="hidden" name="id" value="{{ movie.id }}">
 
         <div>
@@ -35,6 +35,6 @@
         </div>
     </form>
 
-    <p><a href="{{ base_url }}/movies/show?id={{ movie.id }}">Back to Movie Details</a></p>
-    <p><a href="{{ base_url }}/movies">Back to Movies List</a></p>
+    <p><a href="{{ BASE }}/movies/show?id={{ movie.id }}">Back to Movie Details</a></p>
+    <p><a href="{{ BASE }}/movies">Back to Movies List</a></p>
 {% endblock %}

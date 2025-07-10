@@ -10,6 +10,8 @@ return [
     'app' => [
         'name' => 'IMDb Clone',
         'debug' => true, 
+        'base_url' => '/imdb_clone',
+        'asset_url' => '/imdb_clone/public/',
     ],
     'database' => [
         'host' => 'localhost',
@@ -27,4 +29,8 @@ return [
         'routes' => __DIR__ . '/routes/',
         'cache' => __DIR__ . '/var/cache', 
     ],
+    'resend' => [
+        'api_key' => 're_F6yoHRtf_KU53SpHyaN2DMkRfJCJWBxvs',
+    ],
 ];
+

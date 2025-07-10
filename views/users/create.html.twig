@@ -1,28 +1,48 @@
-{# imdb_clone/views/users/create.html.twig #}
 {% extends 'Layouts/base.html.twig' %}
 
-{% block title %}Add New User{% endblock %}
+{% block title %}Register New User{% endblock %}
 
 {% block content %}
-    <h1>Add New User</h1>
-
-    <form action="{{ base_url }}/users/store" method="POST">
-        <div>
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required>
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h3 class="mb-0">Register New User</h3>
+                </div>
+                <div class="card-body">
+                    {% if errors.database %}<div class="alert alert-danger" role="alert">{{ errors.database }}</div>{% endif %}
+                    <form action="{{ BASE }}/register" method="POST">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name:</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ old.name ?? '' }}" required>
+                            {% if errors.name %}<div class="text-danger small">{{ errors.name }}</div>{% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username:</label>
+                            <input type="text" class="form-control" id="username" name="username" value="{{ old.username ?? '' }}" required>
+                            {% if errors.username %}<div class="text-danger small">{{ errors.username }}</div>{% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email:</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ old.email ?? '' }}" required>
+                            {% if errors.email %}<div class="text-danger small">{{ errors.email }}</div>{% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password:</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                            {% if errors.password %}<div class="text-danger small">{{ errors.password }}</div>{% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label">Confirm Password:</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                            {% if errors.confirm_password %}<div class="text-danger small">{{ errors.confirm_password }}</div>{% endif %}
+                        </div>
+                        <button type="submit" class="btn btn-success">Register</button>
+                    </form>
+                </div>
+            </div>
         </div>
-        <div>
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required>
-        </div>
-        <div>
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
-        </div>
-        <div>
-            <button type="submit" class="button">Create User</button>
-        </div>
-    </form>
-
-    <p><a href="{{ base_url }}/users">Back to User List</a></p>
+    </div>
+</div>
 {% endblock %}

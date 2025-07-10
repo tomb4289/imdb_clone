@@ -1,207 +1,123 @@
 <?php
-// imdb_clone/controllers/UserController.php
 namespace App\Controllers;
 
+use App\Providers\View;
+use App\Models\User;
+use App\Providers\Validator;
+use App\Providers\Auth;
 use PDO;
 use Twig\Environment;
-use App\Models\User;
 
-class UserController
+class UserController extends BaseController
 {
-    protected PDO $pdo;
-    protected Environment $twig;
     protected User $userModel;
 
-    public function __construct(PDO $pdo, Environment $twig)
+    public function __construct(PDO $pdo, Environment $twig, array $config)
     {
-        $this->pdo = $pdo;
-        $this->twig = $twig;
-        $this->userModel = new User($this->pdo);
+        parent::__construct($pdo, $twig, $config);
+        $this->userModel = new User($pdo);
     }
 
-
-    public function index()
-    {
-        $users = $this->userModel->all(); 
-        echo $this->twig->render('users/index.html.twig', [
-            'users' => $users,
-            'base_url' => BASE
-        ]);
+    public function index() {
+        Auth::session();
+        Auth::privilege(1);
+        $users = $this->userModel->all();
+        echo $this->twig->render('users/index.html.twig', ['users' => $users]);
     }
 
-
-    public function show($queryParams = [])
-    {
-        $userId = $queryParams['id'] ?? null;
-
-        if (empty($userId)) {
+    public function show(array $queryParams) {
+        Auth::session();
+        Auth::privilege(1);
+        $id = $queryParams['id'] ?? null;
+        if (!$id) {
+            View::redirect('users');
+        }
+        $user = $this->userModel->find($id);
+        if (!$user) {
             http_response_code(404);
-            echo $this->twig->render('error/404.html.twig', ['base_url' => BASE]);
+            echo $this->twig->render('error/404.html.twig');
             return;
         }
+        echo $this->twig->render('users/show.html.twig', ['user' => $user]);
+    }
 
-        try {
-            $user = $this->userModel->find($userId); 
-
-            if (!$user) {
-                http_response_code(404);
-                echo $this->twig->render('error/404.html.twig', ['base_url' => BASE]);
-                return;
-            }
-
-            echo $this->twig->render('users/show.html.twig', ['user' => $user, 'base_url' => BASE]);
-
-        } catch (\PDOException $e) {
-            error_log("Database Error in UserController::show: " . $e->getMessage());
-            http_response_code(500);
-            echo $this->twig->render('error/500.html.twig', ['base_url' => BASE]);
+    public function edit(array $queryParams) {
+        Auth::session();
+        Auth::privilege(1);
+        $id = $queryParams['id'] ?? null;
+        if (!$id) {
+            View::redirect('users');
+        }
+        $user = $this->userModel->find($id);
+        if (!$user) {
+            http_response_code(404);
+            echo $this->twig->render('error/404.html.twig');
             return;
         }
+        echo $this->twig->render('users/edit.html.twig', ['user' => $user, 'errors' => [], 'old' => $user]);
     }
 
+    public function update(array $postData) {
+        Auth::session();
+        Auth::privilege(1);
+        $id = $postData['id'] ?? null;
+        if (!$id) {
+            View::redirect('users');
+        }
 
-    public function create()
-    {
-        echo $this->twig->render('users/create.html.twig', ['base_url' => BASE]);
-    }
+        $validator = new Validator;
+        $validator->field('name', $postData['name'])->required()->min(2)->max(50);
+        $validator->field('username', $postData['username'])->required()->min(2)->max(50);
+        $validator->field('email', $postData['email'])->required()->email();
+        $validator->field('privilege_id', $postData['privilege_id'])->required();
 
-
-    public function store($postData)
-    {
-        try {
-            $username = $postData['username'] ?? null;
-            $email = $postData['email'] ?? null;
-            $password = $postData['password'] ?? null;
-
-            if (!$username || !$email || !$password) {
-                http_response_code(400);
-                echo $this->twig->render('error/400.html.twig', ['message' => 'Username, email, and password are required for user creation.', 'base_url' => BASE]);
-                return;
-            }
-
-            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-
-            $data = [
-                'username' => $username,
-                'email' => $email,
-                'password_hash' => $hashedPassword,
-                'created_at' => date('Y-m-d H:i:s') 
+        if ($validator->isSuccess()) {
+            $userData = [
+                'name' => $postData['name'],
+                'username' => $postData['username'],
+                'email' => $postData['email'],
+                'privilege_id' => $postData['privilege_id']
             ];
 
-            if ($this->userModel->create($data)) {
-                header('Location: ' . BASE . '/users');
-                exit();
-            } else {
-                error_log("Error creating user via BaseModel::create.");
-                http_response_code(500);
-                echo $this->twig->render('error/500.html.twig', ['base_url' => BASE, 'message' => 'Failed to create user.']);
+            if (!empty($postData['password'])) {
+                $validator->field('password', $postData['password'])->min(6)->max(20);
+                $validator->field('confirm_password', $postData['confirm_password'])->matches($postData['password'], 'Password');
+                if ($validator->isSuccess()) {
+                    $userData['password'] = $this->userModel->hashPassword($postData['password']);
+                } else {
+                    $errors = $validator->getErrors();
+                    echo $this->twig->render('users/edit.html.twig', ['user' => $postData, 'errors' => $errors, 'old' => $postData]);
+                    return;
+                }
             }
 
-        } catch (\PDOException $e) {
-            error_log("Database Error in UserController::store: " . $e->getMessage());
-            http_response_code(500);
-            echo $this->twig->render('error/500.html.twig', ['base_url' => BASE]);
-            return;
+            try {
+                $updated = $this->userModel->update($id, $userData);
+                if ($updated) {
+                    View::redirect('users');
+                } else {
+                    $errors['database'] = "Failed to update user. Please try again.";
+                    echo $this->twig->render('users/edit.html.twig', ['user' => $postData, 'errors' => $errors, 'old' => $postData]);
+                }
+            } catch (PDOException $e) {
+                error_log("User update PDO error: " . $e->getMessage());
+                $errors['database'] = "A database error occurred. Please try again.";
+                echo $this->twig->render('users/edit.html.twig', ['user' => $postData, 'errors' => $errors, 'old' => $postData]);
+            }
+        } else {
+            $errors = $validator->getErrors();
+            echo $this->twig->render('users/edit.html.twig', ['user' => $postData, 'errors' => $errors, 'old' => $postData]);
         }
     }
 
-
-    public function edit($queryParams = [])
-    {
-        $userId = $queryParams['id'] ?? null;
-
-        if (empty($userId)) {
-            http_response_code(404);
-            echo $this->twig->render('error/404.html.twig', ['base_url' => BASE]);
-            return;
+    public function delete(array $postData) {
+        Auth::session();
+        Auth::privilege(1);
+        $id = $postData['id'] ?? null;
+        if (!$id) {
+            View::redirect('users');
         }
-
-        try {
-            $user = $this->userModel->find($userId); 
-
-            if (!$user) {
-                http_response_code(404);
-                echo $this->twig->render('error/404.html.twig', ['base_url' => BASE]);
-                return;
-            }
-
-            echo $this->twig->render('users/edit.html.twig', [
-                'user' => $user,
-                'base_url' => BASE
-            ]);
-
-        } catch (\PDOException $e) {
-            error_log("Database Error in UserController::edit: " . $e->getMessage());
-            http_response_code(500);
-            echo $this->twig->render('error/500.html.twig', ['base_url' => BASE]);
-            return;
-        }
-    }
-
-    public function update($postData)
-    {
-        $userId = $postData['id'] ?? null;
-        $username = $postData['username'] ?? null;
-        $email = $postData['email'] ?? null;
-        $password = $postData['password'] ?? null;
-
-        if (empty($userId) || !$username || !$email) {
-            http_response_code(400);
-            echo $this->twig->render('error/400.html.twig', ['message' => 'User ID, username, and email are required for update.', 'base_url' => BASE]);
-            return;
-        }
-
-        try {
-            $data = [
-                'username' => $username,
-                'email' => $email,
-            ];
-
-            if (!empty($password)) {
-                $data['password_hash'] = password_hash($password, PASSWORD_DEFAULT);
-            }
-
-            if ($this->userModel->update($userId, $data)) {
-                header('Location: ' . BASE . '/users/show?id=' . $userId);
-                exit();
-            } else {
-                error_log("Error updating user via BaseModel::update.");
-                http_response_code(500);
-                echo $this->twig->render('error/500.html.twig', ['base_url' => BASE, 'message' => 'Failed to update user.']);
-            }
-
-        } catch (\PDOException $e) {
-            error_log("Database Error in UserController::update: " . $e->getMessage());
-            http_response_code(500);
-            echo $this->twig->render('error/500.html.twig', ['base_url' => BASE]);
-            return;
-        }
-    }
-
-    public function delete($postData)
-    {
-        $userId = $postData['id'] ?? null;
-
-        if (empty($userId)) {
-            http_response_code(400);
-            echo $this->twig->render('error/400.html.twig', ['message' => 'User ID is required for deletion.', 'base_url' => BASE]);
-            return;
-        }
-
-        try {
-            if ($this->userModel->delete($userId)) {
-                header('Location: ' . BASE . '/users');
-                exit();
-            } else {
-                error_log("Error deleting user via BaseModel::delete.");
-                http_response_code(500);
-                echo $this->twig->render('error/500.html.twig', ['base_url' => BASE, 'message' => 'Failed to delete user.']);
-            }
-        } catch (\PDOException $e) {
-            error_log("Database Error in UserController::delete: " . $e->getMessage());
-            http_response_code(500);
-            echo $this->twig->render('error/500.html.twig', ['base_url' => BASE]);
-            return;
-        }
+        $this->userModel->delete($id);
+        View::redirect('users');
     }
 }
