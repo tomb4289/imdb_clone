@@ -30,7 +30,7 @@ return [
         'cache' => __DIR__ . '/var/cache', 
     ],
     'resend' => [
-        'api_key' => 're_F6yoHRtf_KU53SpHyaN2DMkRfJCJWBxvs',
+        'api_key' => '',
     ],
 ];
 
